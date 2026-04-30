@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.env
+.env.*
+.DS_Store
+data/
+logs/
+README.md

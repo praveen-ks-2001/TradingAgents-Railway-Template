@@ -1,0 +1,13 @@
+.git
+.gitignore
+.dockerignore
+README.md
+OVERVIEW.md
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.env
+.env.*
+.DS_Store
+node_modules/
