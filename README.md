@@ -12,7 +12,7 @@ This Railway template wraps the upstream Python package in a FastAPI service so 
 
 Once the deploy finishes, open the generated `*.up.railway.app` URL — the home page is a single form for ticker, date, LLM provider, and debate rounds. Pick `OPENAI` (the default), submit, and the job will run in the background; the page polls every three seconds until the agent graph returns a decision. Visit `/docs` to use the auto-generated Swagger UI directly, or `POST /api/analyze` from any HTTP client. All historic jobs persist in `/data/logs` on the mounted volume.
 
-![TradingAgents dashboard screenshot](https://res.cloudinary.com/asset-cloudinary/image/upload/v1777574797/dfbd38a4-2d57-473e-abcf-057882957bae.png)
+![TradingAgents dashboard screenshot](https://res.cloudinary.com/asset-cloudinary/image/upload/v1777577946/734aa7a9-7de7-4c68-b38f-e5e0cf1aad4e.png)
 
 ## About Hosting TradingAgents
 
