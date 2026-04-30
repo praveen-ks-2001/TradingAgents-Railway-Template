@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir git+https://github.com/TauricResearch/TradingAgen
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py templates.py ./
+COPY app.py index.html ./
 COPY start.sh /usr/local/bin/start.sh
 RUN chmod +x /usr/local/bin/start.sh
 

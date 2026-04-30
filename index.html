@@ -1,30 +1,32 @@
-"""HTML for the home page. Kept as a single string to avoid a templating engine."""
-
-INDEX_HTML = """<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Trading Agents — Multi-agent stock analysis</title>
+<link rel="icon" type="image/png" href="https://github.com/TauricResearch/TradingAgents/raw/main/assets/TauricResearch.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0a0a0b;
-    --surface: #111113;
-    --surface-2: #16161a;
-    --border: #26262c;
-    --border-strong: #3a3a42;
-    --text: #ebebed;
-    --text-dim: #9c9ca6;
-    --text-faint: #5e5e68;
-    --accent: #22ff88;
-    --accent-soft: rgba(34,255,136,0.12);
-    --danger: #ff5d5d;
-    --danger-soft: rgba(255,93,93,0.14);
-    --warn: #ffb547;
-    --warn-soft: rgba(255,181,71,0.14);
+    --bg: #131319;
+    --surface: #1c1c24;
+    --surface-2: #25252e;
+    --surface-3: #2c2c36;
+    --border: #34343e;
+    --border-strong: #46464f;
+    --text: #f1f1f4;
+    --text-dim: #a8a8b3;
+    --text-faint: #6e6e7a;
+    --accent: #34e88f;
+    --accent-strong: #6cf3ad;
+    --accent-soft: rgba(52,232,143,0.12);
+    --accent-glow: rgba(52,232,143,0.22);
+    --danger: #ff6b6b;
+    --danger-soft: rgba(255,107,107,0.14);
+    --warn: #ffc06b;
+    --warn-soft: rgba(255,192,107,0.14);
     --serif: 'Instrument Serif', 'Times New Roman', serif;
     --sans: 'IBM Plex Sans', -apple-system, system-ui, sans-serif;
     --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
@@ -46,67 +48,108 @@ INDEX_HTML = """<!doctype html>
 
   body {
     background:
-      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(34,255,136,0.06), transparent 60%),
+      radial-gradient(ellipse 70% 45% at 50% -10%, rgba(52,232,143,0.07), transparent 60%),
+      radial-gradient(ellipse 60% 40% at 100% 100%, rgba(108,243,173,0.04), transparent 60%),
       var(--bg);
-    min-height: 100vh;
     background-attachment: fixed;
+    min-height: 100vh;
   }
 
   .shell {
-    max-width: 760px;
+    max-width: 780px;
     margin: 0 auto;
-    padding: 56px 28px 80px;
+    padding: 40px 28px 60px;
   }
 
   /* ── Header ───────────────────────────────────────── */
   header {
-    display: flex; align-items: baseline; justify-content: space-between;
-    gap: 16px; margin-bottom: 8px;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; margin-bottom: 18px;
+  }
+  .brand-block {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .brand-logo {
+    height: 40px; width: auto;
+    object-fit: contain;
+    filter: brightness(1.05);
   }
   .brand {
     font-family: var(--serif);
-    font-size: 38px; line-height: 1; letter-spacing: -0.01em;
+    font-size: 44px; line-height: 0.95;
+    letter-spacing: -0.015em;
     font-weight: 400;
+    margin: 0;
   }
   .brand em {
     font-style: italic;
     color: var(--accent);
-    font-weight: 400;
   }
+  .brand-sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+  }
+
+  .header-meta {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+  }
+  .issue-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    color: var(--text-dim);
+    text-decoration: none;
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    transition: all 140ms ease;
+  }
+  .issue-btn:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .issue-btn svg { width: 11px; height: 11px; flex-shrink: 0; }
+
   .status-dot {
     display: inline-flex; align-items: center; gap: 8px;
     font-family: var(--mono); font-size: 11px;
     color: var(--text-faint); text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
   }
   .status-dot::before {
     content: ""; width: 6px; height: 6px; border-radius: 50%;
-    background: var(--accent); box-shadow: 0 0 8px var(--accent);
+    background: var(--accent); box-shadow: 0 0 10px var(--accent-glow);
     animation: pulse 2s ease-in-out infinite;
   }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
 
   .tagline {
     color: var(--text-dim);
-    font-size: 14px;
-    margin: 4px 0 36px;
-    max-width: 520px;
+    font-size: 14.5px;
+    margin: 4px 0 32px;
+    max-width: 540px;
   }
 
   /* ── Provider strip ───────────────────────────────── */
   .providers {
     display: flex; gap: 6px; flex-wrap: wrap;
-    margin-bottom: 32px;
+    margin-bottom: 28px;
     font-family: var(--mono); font-size: 11px;
   }
   .provider {
-    padding: 4px 10px;
+    padding: 5px 11px;
     border: 1px solid var(--border);
     border-radius: 100px;
     color: var(--text-faint);
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    transition: all 120ms ease;
+    transition: all 140ms ease;
   }
   .provider.on {
     color: var(--accent);
@@ -114,30 +157,30 @@ INDEX_HTML = """<!doctype html>
     background: var(--accent-soft);
   }
 
-  /* ── Form ─────────────────────────────────────────── */
+  /* ── Panels ───────────────────────────────────────── */
   .panel {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 28px;
-    margin-bottom: 20px;
+    border-radius: 6px;
+    padding: 26px 28px;
+    margin-bottom: 18px;
   }
 
   .panel-label {
     font-family: var(--mono);
     font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.14em;
     color: var(--text-faint);
-    margin-bottom: 18px;
-    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 20px;
+    display: flex; align-items: center; gap: 12px;
   }
   .panel-label::after {
     content: ""; flex: 1; height: 1px; background: var(--border);
   }
 
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .grid-3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 16px; }
   @media (max-width: 540px) {
     .grid, .grid-3 { grid-template-columns: 1fr; }
   }
@@ -147,70 +190,108 @@ INDEX_HTML = """<!doctype html>
     font-family: var(--mono);
     font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     color: var(--text-dim);
     font-weight: 500;
   }
 
   input[type="text"], input[type="date"], select {
     width: 100%;
-    padding: 10px 12px;
+    padding: 11px 13px;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: 4px;
     color: var(--text);
     font-family: var(--mono);
     font-size: 13px;
     font-weight: 500;
-    transition: border-color 120ms ease, box-shadow 120ms ease;
+    transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+  }
+  input[type="text"]:hover, input[type="date"]:hover, select:hover {
+    background: var(--surface-3);
+    border-color: var(--border-strong);
   }
   input[type="text"]:focus, input[type="date"]:focus, select:focus {
     outline: none;
     border-color: var(--accent);
+    background: var(--surface-2);
     box-shadow: 0 0 0 3px var(--accent-soft);
   }
   input::placeholder { color: var(--text-faint); }
 
+  /* Override Chrome / Edge autofill (the white-background bug) */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active,
+  input:autofill {
+    -webkit-text-fill-color: var(--text) !important;
+    -webkit-box-shadow: 0 0 0 1000px var(--surface-2) inset !important;
+    box-shadow: 0 0 0 1000px var(--surface-2) inset !important;
+    caret-color: var(--text);
+    transition: background-color 9999s ease-in-out 0s !important;
+  }
+
   /* Native date picker tweaks */
   input[type="date"] { color-scheme: dark; }
   input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: invert(1) opacity(0.5);
+    filter: invert(1) opacity(0.55);
     cursor: pointer;
   }
 
   select {
     appearance: none;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'><path d='M1 1L5 5L9 1' stroke='%239c9ca6' stroke-width='1.4' stroke-linecap='round'/></svg>");
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'><path d='M1 1L5 5L9 1' stroke='%23a8a8b3' stroke-width='1.4' stroke-linecap='round'/></svg>");
     background-repeat: no-repeat;
     background-position: right 14px center;
     padding-right: 36px;
+    cursor: pointer;
+  }
+
+  .model-note {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--text-faint);
+    margin: -4px 0 22px;
+    padding: 10px 14px;
+    background: var(--surface-2);
+    border-left: 2px solid var(--accent);
+    border-radius: 3px;
+    line-height: 1.6;
+  }
+  .model-note code {
+    color: var(--accent);
+    font-size: 11px;
+    background: rgba(0,0,0,0.25);
+    padding: 1px 5px;
+    border-radius: 2px;
   }
 
   .actions {
-    display: flex; align-items: center; gap: 16px; margin-top: 8px;
+    display: flex; align-items: center; gap: 16px; margin-top: 6px;
   }
 
   button {
     background: var(--accent);
-    color: #001207;
+    color: #001f10;
     border: none;
-    border-radius: 3px;
-    padding: 11px 22px;
+    border-radius: 4px;
+    padding: 12px 24px;
     font-family: var(--mono);
     font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     cursor: pointer;
-    transition: all 120ms ease;
+    transition: all 140ms ease;
   }
   button:hover:not(:disabled) {
-    background: #5fffa8;
+    background: var(--accent-strong);
     transform: translateY(-1px);
-    box-shadow: 0 6px 20px -8px var(--accent);
+    box-shadow: 0 8px 22px -8px var(--accent-glow);
   }
   button:disabled {
-    background: var(--surface-2);
+    background: var(--surface-3);
     color: var(--text-faint);
     cursor: not-allowed;
   }
@@ -226,7 +307,7 @@ INDEX_HTML = """<!doctype html>
   }
   .result-title {
     font-family: var(--serif);
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 400;
   }
   .result-title em { font-style: italic; color: var(--accent); }
@@ -241,7 +322,7 @@ INDEX_HTML = """<!doctype html>
 
   .pill {
     display: inline-flex; align-items: center; gap: 6px;
-    padding: 3px 10px;
+    padding: 4px 11px;
     border-radius: 100px;
     font-family: var(--mono);
     font-size: 10px;
@@ -264,11 +345,11 @@ INDEX_HTML = """<!doctype html>
     border: 1px solid var(--border);
     border-left: 2px solid var(--accent);
     padding: 18px 20px;
-    border-radius: 3px;
+    border-radius: 4px;
     color: var(--text);
     font-family: var(--mono);
     font-size: 13px;
-    line-height: 1.65;
+    line-height: 1.7;
     white-space: pre-wrap;
     word-wrap: break-word;
     margin: 0;
@@ -289,34 +370,65 @@ INDEX_HTML = """<!doctype html>
   .jobs-list { font-family: var(--mono); font-size: 12px; }
   .job-row {
     display: grid;
-    grid-template-columns: auto 1fr auto auto;
-    gap: 14px; align-items: center;
-    padding: 10px 0;
+    grid-template-columns: auto 1fr auto;
+    gap: 16px; align-items: center;
+    padding: 11px 0;
     border-bottom: 1px solid var(--border);
   }
   .job-row:last-child { border-bottom: none; }
   .job-row .ticker { font-weight: 600; color: var(--text); letter-spacing: 0.04em; }
   .job-row .date { color: var(--text-dim); }
   .job-row .when { color: var(--text-faint); font-size: 11px; }
-  .empty { color: var(--text-faint); font-style: italic; padding: 8px 0; font-family: var(--sans); }
+  .empty {
+    color: var(--text-faint);
+    font-style: italic;
+    padding: 8px 0;
+    font-family: var(--sans);
+  }
 
   /* ── Footer ───────────────────────────────────────── */
   footer {
-    margin-top: 28px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 20px; flex-wrap: wrap;
     font-family: var(--mono); font-size: 11px;
     color: var(--text-faint);
     letter-spacing: 0.04em;
-    display: flex; gap: 18px; flex-wrap: wrap;
   }
-  footer a {
+  .signature {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--text-dim);
+  }
+  .heimdall-logo {
+    width: 18px; height: 18px;
+    filter: drop-shadow(0 0 6px rgba(52,232,143,0.3));
+  }
+  .signature .heart {
+    color: #ff5d8a;
+    font-size: 12px;
+    animation: beat 1.4s ease-in-out infinite;
+    display: inline-block;
+  }
+  @keyframes beat {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.18); }
+  }
+  .signature strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .footer-links { display: flex; gap: 14px; flex-wrap: wrap; }
+  .footer-links a {
     color: var(--text-dim);
     text-decoration: none;
     border-bottom: 1px dashed var(--border-strong);
     padding-bottom: 1px;
     transition: color 120ms ease, border-color 120ms ease;
   }
-  footer a:hover { color: var(--accent); border-color: var(--accent); }
-  footer .sep { color: var(--text-faint); }
+  .footer-links a:hover { color: var(--accent); border-color: var(--accent); }
+  .footer-links .sep { color: var(--text-faint); }
 
   /* Stagger reveal on load */
   .shell > * { animation: rise 600ms cubic-bezier(0.2,0.8,0.2,1) backwards; }
@@ -325,6 +437,7 @@ INDEX_HTML = """<!doctype html>
   .shell > *:nth-child(3) { animation-delay: 120ms; }
   .shell > *:nth-child(4) { animation-delay: 180ms; }
   .shell > *:nth-child(5) { animation-delay: 240ms; }
+  .shell > *:nth-child(6) { animation-delay: 300ms; }
   @keyframes rise {
     from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -335,13 +448,27 @@ INDEX_HTML = """<!doctype html>
 <div class="shell">
 
 <header>
-  <h1 class="brand">Trading <em>Agents</em></h1>
-  <span class="status-dot" id="status-dot">live</span>
+  <div class="brand-block">
+    <img class="brand-logo" src="https://github.com/TauricResearch/TradingAgents/raw/main/assets/TauricResearch.png" alt="Tauric Research">
+    <h1 class="brand">Trading <em>Agents</em></h1>
+    <span class="brand-sub">multi-agent llm trading firm</span>
+  </div>
+  <div class="header-meta">
+    <a class="issue-btn" href="https://github.com/praveen-ks-2001/TradingAgents-Railway-Template/issues" target="_blank" rel="noopener">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="8" cy="8" r="6"/>
+        <path d="M8 5v3.5"/>
+        <circle cx="8" cy="11" r="0.5" fill="currentColor"/>
+      </svg>
+      Report issue
+    </a>
+    <span class="status-dot">live</span>
+  </div>
 </header>
 
-<p class="tagline">A multi-agent LLM trading firm. Analysts, researchers, traders, and risk managers debate every ticker before returning a decision.</p>
+<p class="tagline">Analysts, researchers, traders, and risk managers debate every ticker before returning a decision. Wired up by Tauric Research, deployed on Railway.</p>
 
-<div class="providers" id="providers">
+<div class="providers" id="providers" title="Providers with API keys configured are highlighted">
   <span class="provider" data-key="openai">OpenAI</span>
   <span class="provider" data-key="anthropic">Anthropic</span>
   <span class="provider" data-key="google">Gemini</span>
@@ -388,9 +515,12 @@ INDEX_HTML = """<!doctype html>
         <input id="deep_think_llm" name="deep_think_llm" value="gpt-4o" autocomplete="off" spellcheck="false">
       </div>
     </div>
-    <div class="field" style="margin-bottom: 22px">
+    <div class="field" style="margin-bottom: 14px">
       <label for="quick_think_llm">Quick model</label>
       <input id="quick_think_llm" name="quick_think_llm" value="gpt-4o-mini" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="model-note">
+      Want to switch providers? Set the matching API key (<code>ANTHROPIC_API_KEY</code>, <code>GOOGLE_API_KEY</code>, <code>DEEPSEEK_API_KEY</code>, <code>OPENROUTER_API_KEY</code>, etc.) in Railway → Variables, then pick that provider above.
     </div>
     <div class="actions">
       <button type="submit" id="submit-btn">Run analysis →</button>
@@ -416,13 +546,19 @@ INDEX_HTML = """<!doctype html>
 </div>
 
 <footer>
-  <a href="/docs" target="_blank">api docs</a>
-  <span class="sep">/</span>
-  <a href="/api/jobs" target="_blank">jobs json</a>
-  <span class="sep">/</span>
-  <a href="/api/config" target="_blank">config</a>
-  <span class="sep">/</span>
-  <a href="https://github.com/TauricResearch/TradingAgents" target="_blank" rel="noopener">upstream</a>
+  <div class="signature">
+    <img class="heimdall-logo" src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/heimdall-light.svg" alt="">
+    <span>made by <strong>Heimdall</strong> with <span class="heart">♥</span></span>
+  </div>
+  <div class="footer-links">
+    <a href="/docs" target="_blank">api docs</a>
+    <span class="sep">/</span>
+    <a href="/api/jobs" target="_blank">jobs json</a>
+    <span class="sep">/</span>
+    <a href="/api/config" target="_blank">config</a>
+    <span class="sep">/</span>
+    <a href="https://github.com/TauricResearch/TradingAgents" target="_blank" rel="noopener">upstream</a>
+  </div>
 </footer>
 
 </div>
@@ -559,4 +695,4 @@ loadJobsList();
 setInterval(loadJobsList, 10000);
 </script>
 </body>
-</html>"""
+</html>

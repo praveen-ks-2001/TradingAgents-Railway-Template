@@ -11,13 +11,14 @@ import os
 import threading
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
-from templates import INDEX_HTML
+INDEX_PATH = Path(__file__).parent / "index.html"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -126,9 +127,9 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/", response_class=HTMLResponse, include_in_schema=False)
-async def index() -> str:
-    return INDEX_HTML
+@app.get("/", include_in_schema=False)
+async def index() -> FileResponse:
+    return FileResponse(INDEX_PATH, media_type="text/html")
 
 
 @app.post("/api/analyze", response_model=JobResponse)
