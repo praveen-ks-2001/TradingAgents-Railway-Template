@@ -7,6 +7,7 @@ background task; the frontend polls for completion and live logs.
 from __future__ import annotations
 
 import collections
+import json
 import logging
 import os
 import threading
@@ -41,6 +42,26 @@ JOB_REPORTS: dict[str, dict[str, Any]] = {}
 JOBS_LOCK = threading.Lock()
 MAX_JOBS = 100
 RESULTS_DIR = Path(os.getenv("TRADINGAGENTS_RESULTS_DIR", "/data/logs"))
+JOBS_FILE = Path(os.getenv("TRADINGAGENTS_RESULTS_DIR", "/data/logs")) / "jobs.json"
+
+
+def _save_jobs() -> None:
+    try:
+        JOBS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        JOBS_FILE.write_text(json.dumps(list(JOBS.values()), default=str))
+    except Exception:
+        log.exception("Failed to persist jobs to %s", JOBS_FILE)
+
+
+def _load_jobs() -> None:
+    if not JOBS_FILE.exists():
+        return
+    try:
+        for job in json.loads(JOBS_FILE.read_text()):
+            JOBS[job["job_id"]] = job
+        log.info("Loaded %d jobs from %s", len(JOBS), JOBS_FILE)
+    except Exception:
+        log.exception("Failed to load jobs from %s", JOBS_FILE)
 
 
 class JobLogBuffer(logging.Handler):
@@ -56,6 +77,8 @@ class JobLogBuffer(logging.Handler):
 
 
 JOB_LOGS: dict[str, JobLogBuffer] = {}
+
+_load_jobs()
 
 
 def _utc_now_iso() -> str:
@@ -169,6 +192,7 @@ def _run_analysis(job_id: str, req: AnalyzeRequest) -> None:
             JOBS[job_id]["decision"] = str(decision)
             JOBS[job_id]["completed_at"] = _utc_now_iso()
             JOBS[job_id]["progress"] = f"Completed in {elapsed:.0f}s"
+            _save_jobs()
         log.info("[%s] completed in %.1fs", job_id, elapsed)
 
     except Exception as exc:
@@ -178,6 +202,7 @@ def _run_analysis(job_id: str, req: AnalyzeRequest) -> None:
             JOBS[job_id]["error"] = f"{type(exc).__name__}: {exc}"
             JOBS[job_id]["completed_at"] = _utc_now_iso()
             JOBS[job_id]["progress"] = "Failed"
+            _save_jobs()
     finally:
         root_logger.removeHandler(handler)
 
@@ -218,6 +243,7 @@ async def analyze(req: AnalyzeRequest, background_tasks: BackgroundTasks) -> Job
     }
     with JOBS_LOCK:
         JOBS[job_id] = job
+        _save_jobs()
 
     background_tasks.add_task(_run_analysis, job_id, req)
 
@@ -258,7 +284,6 @@ async def get_job_report(job_id: str) -> JSONResponse:
     if not report:
         result_file = RESULTS_DIR / job["ticker"] / "TradingAgentsStrategy_logs" / f"full_states_log_{job['date']}.json"
         if result_file.exists():
-            import json
             report = json.loads(result_file.read_text())
         else:
             report = {"decision": job.get("decision"), "note": "Detailed report not available in memory. The JSON log may be on the volume."}
@@ -290,7 +315,6 @@ async def download_job_report(job_id: str):
 
     report = JOB_REPORTS.get(job_id)
     if report:
-        import json
         content = {"ticker": job["ticker"], "date": job["date"], "decision": job.get("decision"), **report}
         headers = {"Content-Disposition": f'attachment; filename="{job["ticker"]}_{job["date"]}_analysis.json"'}
         return JSONResponse(content=content, headers=headers)
