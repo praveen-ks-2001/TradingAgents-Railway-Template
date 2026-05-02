@@ -337,8 +337,22 @@
   .pill.running::before { background: var(--warn); animation: pulse 1.4s ease-in-out infinite; }
   .pill.completed { color: var(--accent); background: var(--accent-soft); }
   .pill.completed::before { background: var(--accent); }
-  .pill.failed { color: var(--danger); background: var(--danger-soft); }
-  .pill.failed::before { background: var(--danger); }
+  .pill.failed, .pill.timed_out { color: var(--danger); background: var(--danger-soft); }
+  .pill.failed::before, .pill.timed_out::before { background: var(--danger); }
+
+  .progress-bar {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .elapsed {
+    color: var(--warn);
+    font-weight: 500;
+  }
 
   pre.output {
     background: var(--bg);
@@ -357,7 +371,7 @@
     max-height: 480px;
     overflow-y: auto;
   }
-  pre.output.failed { border-left-color: var(--danger); }
+  pre.output.failed, pre.output.timed_out { border-left-color: var(--danger); }
   pre.output.running { border-left-color: var(--warn); color: var(--text-dim); }
   pre.output.running::after {
     content: "▊";
@@ -365,6 +379,81 @@
     animation: blink 1s steps(2,start) infinite;
   }
   @keyframes blink { to { visibility: hidden; } }
+
+  /* ── Report actions ───────────────────────────────── */
+  .report-actions {
+    display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;
+  }
+  .report-actions a, .report-actions button {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 7px 14px;
+    border-radius: 4px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 140ms ease;
+  }
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+  .btn-outline:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .btn-accent {
+    background: var(--accent-soft);
+    border: 1px solid rgba(52,232,143,0.25);
+    color: var(--accent);
+  }
+  .btn-accent:hover {
+    background: rgba(52,232,143,0.2);
+    border-color: var(--accent);
+  }
+
+  /* ── Logs viewer ──────────────────────────────────── */
+  .logs-toggle {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    background: none;
+    border: 1px solid var(--border);
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 12px;
+    transition: all 140ms ease;
+  }
+  .logs-toggle:hover {
+    color: var(--text-dim);
+    border-color: var(--border-strong);
+    background: var(--surface-2);
+    transform: none;
+    box-shadow: none;
+  }
+  .logs-viewer {
+    margin-top: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    max-height: 260px;
+    overflow-y: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--text-faint);
+    display: none;
+  }
+  .logs-viewer.open { display: block; }
+  .logs-viewer .log-line { white-space: pre-wrap; word-break: break-all; }
+  .logs-viewer .log-line:hover { color: var(--text-dim); }
 
   /* ── Job list ─────────────────────────────────────── */
   .jobs-list { font-family: var(--mono); font-size: 12px; }
@@ -374,8 +463,15 @@
     gap: 16px; align-items: center;
     padding: 11px 0;
     border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 100ms ease;
+    margin: 0 -8px;
+    padding-left: 8px;
+    padding-right: 8px;
+    border-radius: 3px;
   }
   .job-row:last-child { border-bottom: none; }
+  .job-row:hover { background: var(--surface-2); }
   .job-row .ticker { font-weight: 600; color: var(--text); letter-spacing: 0.04em; }
   .job-row .date { color: var(--text-dim); }
   .job-row .when { color: var(--text-faint); font-size: 11px; }
@@ -384,6 +480,97 @@
     font-style: italic;
     padding: 8px 0;
     font-family: var(--sans);
+  }
+
+  /* ── Report modal ────────────────────────────────── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms ease;
+  }
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    max-width: 760px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 32px;
+    position: relative;
+  }
+  .modal-close {
+    position: absolute; top: 14px; right: 16px;
+    background: none; border: none;
+    color: var(--text-faint); font-size: 20px;
+    cursor: pointer; padding: 4px 8px;
+    line-height: 1;
+    transition: color 120ms ease;
+  }
+  .modal-close:hover {
+    color: var(--text);
+    transform: none;
+    box-shadow: none;
+  }
+  .modal h2 {
+    font-family: var(--serif);
+    font-size: 28px; font-weight: 400;
+    margin: 0 0 4px;
+  }
+  .modal h2 em { font-style: italic; color: var(--accent); }
+  .modal .decision-badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 6px 16px;
+    border-radius: 4px;
+    margin: 12px 0 20px;
+  }
+  .decision-buy { color: var(--accent); background: var(--accent-soft); border: 1px solid rgba(52,232,143,0.3); }
+  .decision-sell { color: var(--danger); background: var(--danger-soft); border: 1px solid rgba(255,107,107,0.3); }
+  .decision-hold { color: var(--warn); background: var(--warn-soft); border: 1px solid rgba(255,192,107,0.3); }
+  .decision-default { color: var(--text-dim); background: var(--surface-2); border: 1px solid var(--border); }
+  .report-section {
+    margin-bottom: 20px;
+  }
+  .report-section summary {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 8px 0;
+    user-select: none;
+  }
+  .report-section summary:hover { color: var(--accent); }
+  .report-section pre {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.65;
+    color: var(--text-dim);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 320px;
+    overflow-y: auto;
+    margin: 8px 0 0;
   }
 
   /* ── Footer ───────────────────────────────────────── */
@@ -520,10 +707,10 @@
       <input id="quick_think_llm" name="quick_think_llm" value="gpt-4o-mini" autocomplete="off" spellcheck="false">
     </div>
     <div class="model-note">
-      Want to switch providers? Set the matching API key (<code>ANTHROPIC_API_KEY</code>, <code>GOOGLE_API_KEY</code>, <code>DEEPSEEK_API_KEY</code>, <code>OPENROUTER_API_KEY</code>, etc.) in Railway → Variables, then pick that provider above.
+      Want to switch providers? Set the matching API key (<code>ANTHROPIC_API_KEY</code>, <code>GOOGLE_API_KEY</code>, <code>DEEPSEEK_API_KEY</code>, <code>OPENROUTER_API_KEY</code>, etc.) in Railway &rarr; Variables, then pick that provider above.
     </div>
     <div class="actions">
-      <button type="submit" id="submit-btn">Run analysis →</button>
+      <button type="submit" id="submit-btn">Run analysis &rarr;</button>
       <span id="hint" class="hint"></span>
     </div>
   </form>
@@ -533,22 +720,29 @@
   <div class="result-head">
     <div>
       <div class="result-title">Decision <em id="result-ticker"></em></div>
-      <div class="meta">job <code id="job-id"></code> · started <span id="started-at"></span></div>
+      <div class="meta">job <code id="job-id"></code> &middot; started <span id="started-at"></span></div>
     </div>
     <span id="job-status" class="pill running">running</span>
   </div>
-  <pre class="output running" id="output">Spinning up agents…</pre>
+  <div id="progress-bar" class="progress-bar" style="display:none">
+    <span id="progress-text"></span>
+    <span class="elapsed" id="elapsed"></span>
+  </div>
+  <pre class="output running" id="output">Initializing…</pre>
+  <div id="report-actions" class="report-actions" style="display:none"></div>
+  <button class="logs-toggle" id="logs-toggle" style="display:none" onclick="toggleLogs()">Show logs</button>
+  <div class="logs-viewer" id="logs-viewer"></div>
 </div>
 
 <div class="panel">
   <div class="panel-label">Recent jobs</div>
-  <div id="jobs-list" class="jobs-list"><div class="empty">Loading…</div></div>
+  <div id="jobs-list" class="jobs-list"><div class="empty">Loading&hellip;</div></div>
 </div>
 
 <footer>
   <div class="signature">
     <img class="heimdall-logo" src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/heimdall-light.svg" alt="">
-    <span>made by <strong>Heimdall</strong> with <span class="heart">♥</span></span>
+    <span>made by <strong>Heimdall</strong> with <span class="heart">&hearts;</span></span>
   </div>
   <div class="footer-links">
     <a href="/docs" target="_blank">api docs</a>
@@ -563,6 +757,14 @@
 
 </div>
 
+<!-- Report Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
 <script>
 const form = document.getElementById('analyze-form');
 const submitBtn = document.getElementById('submit-btn');
@@ -575,10 +777,21 @@ const outputEl = document.getElementById('output');
 const resultTickerEl = document.getElementById('result-ticker');
 const jobsListEl = document.getElementById('jobs-list');
 const providersEl = document.getElementById('providers');
+const progressBar = document.getElementById('progress-bar');
+const progressText = document.getElementById('progress-text');
+const elapsedEl = document.getElementById('elapsed');
+const logsToggle = document.getElementById('logs-toggle');
+const logsViewer = document.getElementById('logs-viewer');
+const reportActions = document.getElementById('report-actions');
 
 document.getElementById('date').valueAsDate = new Date();
 
 let pollInterval = null;
+let logsPollInterval = null;
+let elapsedInterval = null;
+let activeJobId = null;
+let activeJobStart = null;
+let logsOpen = false;
 
 function relTime(iso) {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
@@ -586,6 +799,13 @@ function relTime(iso) {
   if (diff < 3600) return Math.floor(diff/60) + 'm ago';
   if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
   return Math.floor(diff/86400) + 'd ago';
+}
+
+function fmtElapsed(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
 }
 
 async function loadProviders() {
@@ -604,29 +824,148 @@ async function loadProviders() {
 function setStatus(state, text) {
   statusEl.className = 'pill ' + state;
   statusEl.textContent = text || state;
-  outputEl.classList.remove('running','failed');
+  outputEl.classList.remove('running','failed','timed_out');
   if (state === 'running') outputEl.classList.add('running');
-  if (state === 'failed') outputEl.classList.add('failed');
+  if (state === 'failed' || state === 'timed_out') outputEl.classList.add('failed');
 }
+
+function startElapsedTimer() {
+  activeJobStart = Date.now();
+  elapsedInterval = setInterval(() => {
+    elapsedEl.textContent = fmtElapsed(Date.now() - activeJobStart);
+  }, 1000);
+}
+
+function stopElapsedTimer() {
+  clearInterval(elapsedInterval);
+}
+
+function toggleLogs() {
+  logsOpen = !logsOpen;
+  logsViewer.classList.toggle('open', logsOpen);
+  logsToggle.textContent = logsOpen ? 'Hide logs' : 'Show logs';
+}
+
+async function pollLogs(jobId) {
+  try {
+    const res = await fetch(`/api/jobs/${jobId}/logs?tail=80`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.lines && data.lines.length > 0) {
+      logsViewer.innerHTML = data.lines.map(l =>
+        `<div class="log-line">${l.replace(/</g,'&lt;')}</div>`
+      ).join('');
+      if (logsOpen) {
+        logsViewer.scrollTop = logsViewer.scrollHeight;
+      }
+    }
+  } catch (e) { /* silent */ }
+}
+
+function decisionClass(decision) {
+  if (!decision) return 'decision-default';
+  const d = decision.toLowerCase();
+  if (d === 'buy' || d === 'overweight') return 'decision-buy';
+  if (d === 'sell' || d === 'underweight') return 'decision-sell';
+  if (d === 'hold') return 'decision-hold';
+  return 'decision-default';
+}
+
+function showReportActions(jobId) {
+  reportActions.style.display = 'flex';
+  reportActions.innerHTML = `
+    <a class="btn-accent" href="javascript:void(0)" onclick="openReport('${jobId}')">View full report</a>
+    <a class="btn-outline" href="/api/jobs/${jobId}/report/download" target="_blank">Download JSON</a>
+  `;
+}
+
+async function openReport(jobId) {
+  const overlay = document.getElementById('modal-overlay');
+  const content = document.getElementById('modal-content');
+  content.innerHTML = '<div class="empty">Loading report&hellip;</div>';
+  overlay.classList.add('open');
+
+  try {
+    const res = await fetch(`/api/jobs/${jobId}/report`);
+    if (!res.ok) {
+      const err = await res.json();
+      content.innerHTML = `<p style="color:var(--danger)">${err.detail || 'Failed to load report'}</p>`;
+      return;
+    }
+    const data = await res.json();
+    let html = `<h2>Analysis <em>${data.ticker}</em></h2>`;
+    html += `<div class="meta" style="margin-bottom:8px">Date: ${data.date} &middot; Job: ${data.job_id.slice(0,8)}</div>`;
+    html += `<div class="decision-badge ${decisionClass(data.decision)}">${data.decision || 'N/A'}</div>`;
+
+    const report = data.report || {};
+    const sections = [
+      ['final_trade_decision', 'Final Trade Decision'],
+      ['investment_plan', 'Investment Plan'],
+      ['trader_investment_decision', 'Trader Decision'],
+      ['market_report', 'Market Analysis'],
+      ['news_report', 'News Analysis'],
+      ['sentiment_report', 'Sentiment Analysis'],
+      ['fundamentals_report', 'Fundamentals Analysis'],
+      ['investment_debate_state', 'Investment Debate'],
+      ['risk_debate_state', 'Risk Assessment'],
+    ];
+
+    for (const [key, label] of sections) {
+      if (report[key]) {
+        const val = typeof report[key] === 'string' ? report[key] : JSON.stringify(report[key], null, 2);
+        html += `<details class="report-section"><summary>${label}</summary><pre>${val.replace(/</g,'&lt;')}</pre></details>`;
+      }
+    }
+
+    html += `<div class="report-actions" style="margin-top:20px">
+      <a class="btn-outline" href="/api/jobs/${jobId}/report/download" target="_blank">Download full JSON</a>
+    </div>`;
+
+    content.innerHTML = html;
+  } catch (e) {
+    content.innerHTML = `<p style="color:var(--danger)">Error: ${e.message}</p>`;
+  }
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
 
 async function pollJob(jobId) {
   try {
     const res = await fetch(`/api/jobs/${jobId}`);
     if (!res.ok) throw new Error(`Failed: ${res.status}`);
     const job = await res.json();
+
+    if (job.progress) {
+      progressBar.style.display = 'flex';
+      progressText.textContent = job.progress;
+    }
+
     if (job.status === 'completed') {
       setStatus('completed', 'completed');
       outputEl.textContent = job.decision || '(no decision returned)';
+      stopElapsedTimer();
       clearInterval(pollInterval);
+      clearInterval(logsPollInterval);
       submitBtn.disabled = false;
       hint.textContent = '';
+      showReportActions(jobId);
+      logsToggle.style.display = 'inline-block';
       loadJobsList();
-    } else if (job.status === 'failed') {
-      setStatus('failed', 'failed');
+    } else if (job.status === 'failed' || job.status === 'timed_out') {
+      setStatus(job.status, job.status === 'timed_out' ? 'timed out' : 'failed');
       outputEl.textContent = `Error: ${job.error || 'unknown'}`;
+      stopElapsedTimer();
       clearInterval(pollInterval);
+      clearInterval(logsPollInterval);
       submitBtn.disabled = false;
       hint.textContent = '';
+      logsToggle.style.display = 'inline-block';
       loadJobsList();
     }
   } catch (e) {
@@ -655,15 +994,25 @@ form.addEventListener('submit', async (e) => {
       alert(job.detail || 'Failed to submit');
       return;
     }
-    hint.textContent = '60–300s · debate is running';
+    activeJobId = job.job_id;
+    hint.textContent = '3–10 min · agents are deliberating';
     resultPanel.style.display = 'block';
     resultTickerEl.textContent = job.ticker;
     jobIdEl.textContent = job.job_id.slice(0, 8);
     startedEl.textContent = new Date(job.created_at).toLocaleTimeString();
     setStatus('running', 'running');
-    outputEl.textContent = 'Spinning up agents…';
+    outputEl.textContent = 'Initializing…';
+    progressBar.style.display = 'flex';
+    progressText.textContent = 'Queued';
+    reportActions.style.display = 'none';
+    logsToggle.style.display = 'inline-block';
+    logsViewer.classList.remove('open');
+    logsOpen = false;
+    logsToggle.textContent = 'Show logs';
     resultPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    startElapsedTimer();
     pollInterval = setInterval(() => pollJob(job.job_id), 3000);
+    logsPollInterval = setInterval(() => pollLogs(job.job_id), 4000);
   } catch (err) {
     submitBtn.disabled = false;
     hint.textContent = '';
@@ -680,13 +1029,43 @@ async function loadJobsList() {
       return;
     }
     jobsListEl.innerHTML = jobs.slice(0, 10).map(j => `
-      <div class="job-row">
-        <span class="pill ${j.status}">${j.status}</span>
+      <div class="job-row" onclick="viewJob('${j.job_id}', '${j.status}')" title="Click to view">
+        <span class="pill ${j.status}">${j.status === 'timed_out' ? 'timeout' : j.status}</span>
         <span><span class="ticker">${j.ticker}</span> <span class="date">@ ${j.date}</span></span>
         <span class="when">${relTime(j.created_at)}</span>
       </div>`).join('');
   } catch (e) {
     jobsListEl.innerHTML = `<div class="empty">Failed to load: ${e.message}</div>`;
+  }
+}
+
+async function viewJob(jobId, status) {
+  if (status === 'completed') {
+    openReport(jobId);
+  } else {
+    // Show inline for non-completed jobs
+    try {
+      const res = await fetch(`/api/jobs/${jobId}`);
+      const job = await res.json();
+      resultPanel.style.display = 'block';
+      resultTickerEl.textContent = job.ticker;
+      jobIdEl.textContent = job.job_id.slice(0, 8);
+      startedEl.textContent = new Date(job.created_at).toLocaleTimeString();
+      setStatus(job.status, job.status === 'timed_out' ? 'timed out' : job.status);
+      reportActions.style.display = 'none';
+
+      if (job.status === 'failed' || job.status === 'timed_out') {
+        outputEl.textContent = `Error: ${job.error || 'unknown'}`;
+        progressBar.style.display = job.progress ? 'flex' : 'none';
+        if (job.progress) progressText.textContent = job.progress;
+      } else if (job.status === 'running') {
+        outputEl.textContent = job.progress || 'Running…';
+        progressBar.style.display = job.progress ? 'flex' : 'none';
+        if (job.progress) progressText.textContent = job.progress;
+      }
+
+      resultPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (e) { /* silent */ }
   }
 }
 
