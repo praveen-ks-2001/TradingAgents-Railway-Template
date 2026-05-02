@@ -16,26 +16,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import requests
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
-# ── Monkey-patch requests to enforce a default timeout ──────────────
-# yfinance (used by TradingAgents for data) calls requests without timeout,
-# causing indefinite hangs when Yahoo Finance is slow or unresponsive.
-_original_request = requests.Session.request
-
-def _patched_request(self, *args, **kwargs):
-    kwargs.setdefault("timeout", 60)
-    return _original_request(self, *args, **kwargs)
-
-requests.Session.request = _patched_request
-# ────────────────────────────────────────────────────────────────────
-
 INDEX_PATH = Path(__file__).parent / "index.html"
-JOB_TIMEOUT_SECONDS = int(os.getenv("JOB_TIMEOUT_SECONDS", "600"))
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -186,33 +171,15 @@ def _run_analysis(job_id: str, req: AnalyzeRequest) -> None:
             JOBS[job_id]["progress"] = f"Completed in {elapsed:.0f}s"
         log.info("[%s] completed in %.1fs", job_id, elapsed)
 
-    except BaseException as exc:
+    except Exception as exc:
         log.exception("[%s] failed", job_id)
         with JOBS_LOCK:
-            if JOBS.get(job_id, {}).get("status") != "timed_out":
-                JOBS[job_id]["status"] = "failed"
-                JOBS[job_id]["error"] = f"{type(exc).__name__}: {exc}"
-                JOBS[job_id]["completed_at"] = _utc_now_iso()
-                JOBS[job_id]["progress"] = "Failed"
+            JOBS[job_id]["status"] = "failed"
+            JOBS[job_id]["error"] = f"{type(exc).__name__}: {exc}"
+            JOBS[job_id]["completed_at"] = _utc_now_iso()
+            JOBS[job_id]["progress"] = "Failed"
     finally:
         root_logger.removeHandler(handler)
-
-
-def _watchdog(job_id: str, timeout: int) -> None:
-    """Marks a job as timed out after `timeout` seconds."""
-    time.sleep(timeout)
-    with JOBS_LOCK:
-        job = JOBS.get(job_id)
-        if job and job["status"] == "running":
-            job["status"] = "timed_out"
-            job["error"] = (
-                f"Analysis exceeded the {timeout}s timeout. "
-                "This usually means a data source (Yahoo Finance) is unresponsive. "
-                "Try again later or use a different date."
-            )
-            job["completed_at"] = _utc_now_iso()
-            job["progress"] = "Timed out"
-            log.warning("[%s] timed out after %ds", job_id, timeout)
 
 
 @app.get("/health", include_in_schema=False)
@@ -253,9 +220,6 @@ async def analyze(req: AnalyzeRequest, background_tasks: BackgroundTasks) -> Job
         JOBS[job_id] = job
 
     background_tasks.add_task(_run_analysis, job_id, req)
-
-    wd = threading.Thread(target=_watchdog, args=(job_id, JOB_TIMEOUT_SECONDS), daemon=True)
-    wd.start()
 
     return JobResponse(**job)
 

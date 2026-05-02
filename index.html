@@ -337,8 +337,8 @@
   .pill.running::before { background: var(--warn); animation: pulse 1.4s ease-in-out infinite; }
   .pill.completed { color: var(--accent); background: var(--accent-soft); }
   .pill.completed::before { background: var(--accent); }
-  .pill.failed, .pill.timed_out { color: var(--danger); background: var(--danger-soft); }
-  .pill.failed::before, .pill.timed_out::before { background: var(--danger); }
+  .pill.failed { color: var(--danger); background: var(--danger-soft); }
+  .pill.failed::before { background: var(--danger); }
 
   .progress-bar {
     font-family: var(--mono);
@@ -371,7 +371,7 @@
     max-height: 480px;
     overflow-y: auto;
   }
-  pre.output.failed, pre.output.timed_out { border-left-color: var(--danger); }
+  pre.output.failed { border-left-color: var(--danger); }
   pre.output.running { border-left-color: var(--warn); color: var(--text-dim); }
   pre.output.running::after {
     content: "▊";
@@ -824,9 +824,9 @@ async function loadProviders() {
 function setStatus(state, text) {
   statusEl.className = 'pill ' + state;
   statusEl.textContent = text || state;
-  outputEl.classList.remove('running','failed','timed_out');
+  outputEl.classList.remove('running','failed');
   if (state === 'running') outputEl.classList.add('running');
-  if (state === 'failed' || state === 'timed_out') outputEl.classList.add('failed');
+  if (state === 'failed') outputEl.classList.add('failed');
 }
 
 function startElapsedTimer() {
@@ -957,8 +957,8 @@ async function pollJob(jobId) {
       showReportActions(jobId);
       logsToggle.style.display = 'inline-block';
       loadJobsList();
-    } else if (job.status === 'failed' || job.status === 'timed_out') {
-      setStatus(job.status, job.status === 'timed_out' ? 'timed out' : 'failed');
+    } else if (job.status === 'failed') {
+      setStatus('failed', 'failed');
       outputEl.textContent = `Error: ${job.error || 'unknown'}`;
       stopElapsedTimer();
       clearInterval(pollInterval);
@@ -1030,7 +1030,7 @@ async function loadJobsList() {
     }
     jobsListEl.innerHTML = jobs.slice(0, 10).map(j => `
       <div class="job-row" onclick="viewJob('${j.job_id}', '${j.status}')" title="Click to view">
-        <span class="pill ${j.status}">${j.status === 'timed_out' ? 'timeout' : j.status}</span>
+        <span class="pill ${j.status}">${j.status}</span>
         <span><span class="ticker">${j.ticker}</span> <span class="date">@ ${j.date}</span></span>
         <span class="when">${relTime(j.created_at)}</span>
       </div>`).join('');
@@ -1051,10 +1051,10 @@ async function viewJob(jobId, status) {
       resultTickerEl.textContent = job.ticker;
       jobIdEl.textContent = job.job_id.slice(0, 8);
       startedEl.textContent = new Date(job.created_at).toLocaleTimeString();
-      setStatus(job.status, job.status === 'timed_out' ? 'timed out' : job.status);
+      setStatus(job.status, job.status);
       reportActions.style.display = 'none';
 
-      if (job.status === 'failed' || job.status === 'timed_out') {
+      if (job.status === 'failed') {
         outputEl.textContent = `Error: ${job.error || 'unknown'}`;
         progressBar.style.display = job.progress ? 'flex' : 'none';
         if (job.progress) progressText.textContent = job.progress;
