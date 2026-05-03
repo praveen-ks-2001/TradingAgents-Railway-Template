@@ -7,6 +7,7 @@ background task; the frontend polls for completion and live logs.
 from __future__ import annotations
 
 import collections
+import contextlib
 import json
 import logging
 import os
@@ -77,8 +78,21 @@ class JobLogBuffer(logging.Handler):
 
 
 JOB_LOGS: dict[str, JobLogBuffer] = {}
+API_KEY_LOCK = threading.Lock()  # serializes jobs that override api_key via env var
 
 _load_jobs()
+
+
+PROVIDER_ENV_KEYS = {
+    "openai": "OPENAI_API_KEY",
+    "anthropic": "ANTHROPIC_API_KEY",
+    "google": "GOOGLE_API_KEY",
+    "xai": "XAI_API_KEY",
+    "deepseek": "DEEPSEEK_API_KEY",
+    "openrouter": "OPENROUTER_API_KEY",
+    "ollama": None,
+    "custom": "OPENAI_API_KEY",  # custom uses the OpenAI-compatible client
+}
 
 
 def _utc_now_iso() -> str:
@@ -86,16 +100,7 @@ def _utc_now_iso() -> str:
 
 
 def _provider_key_present(provider: str) -> bool:
-    mapping = {
-        "openai": "OPENAI_API_KEY",
-        "anthropic": "ANTHROPIC_API_KEY",
-        "google": "GOOGLE_API_KEY",
-        "xai": "XAI_API_KEY",
-        "deepseek": "DEEPSEEK_API_KEY",
-        "openrouter": "OPENROUTER_API_KEY",
-        "ollama": None,
-    }
-    env_key = mapping.get(provider.lower())
+    env_key = PROVIDER_ENV_KEYS.get(provider.lower(), "OPENAI_API_KEY")
     if env_key is None:
         return True
     return bool(os.getenv(env_key))
@@ -109,6 +114,12 @@ class AnalyzeRequest(BaseModel):
     quick_think_llm: str = Field("gpt-4o-mini")
     max_debate_rounds: int = Field(1, ge=1, le=5)
     max_risk_discuss_rounds: int = Field(1, ge=1, le=5)
+    api_key: str | None = Field(default=None, description="Optional per-request API key override")
+    backend_url: str | None = Field(default=None, description="Optional OpenAI-compatible base URL")
+    selected_analysts: list[str] = Field(
+        default_factory=lambda: ["market", "social", "news", "fundamentals"],
+        description="Which analysts to run",
+    )
 
 
 class JobResponse(BaseModel):
@@ -155,24 +166,58 @@ def _run_analysis(job_id: str, req: AnalyzeRequest) -> None:
         from tradingagents.graph.trading_graph import TradingAgentsGraph
 
         _update_progress(job_id, "Configuring analysis graph…")
+        provider = req.llm_provider.lower()
+        # "custom" maps to the OpenAI-compatible client + a backend_url override
+        internal_provider = "openai" if provider == "custom" else provider
+
         config = DEFAULT_CONFIG.copy()
-        config["llm_provider"] = req.llm_provider
+        config["llm_provider"] = internal_provider
         config["deep_think_llm"] = req.deep_think_llm
         config["quick_think_llm"] = req.quick_think_llm
         config["max_debate_rounds"] = req.max_debate_rounds
         config["max_risk_discuss_rounds"] = req.max_risk_discuss_rounds
 
-        ta = TradingAgentsGraph(config=config)
+        if req.backend_url:
+            config["backend_url"] = req.backend_url
 
-        _update_progress(
-            job_id,
-            f"Running multi-agent analysis for {req.ticker.upper()} — "
-            f"this typically takes 3–10 minutes…",
-        )
+        if os.getenv("ALPHA_VANTAGE_API_KEY"):
+            config["data_vendors"] = {
+                "core_stock_apis": "alpha_vantage",
+                "technical_indicators": "alpha_vantage",
+                "fundamental_data": "alpha_vantage",
+                "news_data": "alpha_vantage",
+            }
+            _update_progress(job_id, "ALPHA_VANTAGE_API_KEY detected — all data sources routed through Alpha Vantage")
 
-        start = time.monotonic()
-        final_state, decision = ta.propagate(req.ticker.upper(), req.date)
-        elapsed = time.monotonic() - start
+        api_key_env = PROVIDER_ENV_KEYS.get(provider, "OPENAI_API_KEY")
+        lock_ctx = API_KEY_LOCK if (req.api_key and api_key_env) else contextlib.nullcontext()
+        saved_key: str | None = None
+
+        with lock_ctx:
+            if req.api_key and api_key_env:
+                saved_key = os.environ.get(api_key_env)
+                os.environ[api_key_env] = req.api_key
+            try:
+                ta = TradingAgentsGraph(
+                    selected_analysts=req.selected_analysts,
+                    config=config,
+                )
+
+                _update_progress(
+                    job_id,
+                    f"Running multi-agent analysis for {req.ticker.upper()} — "
+                    f"this typically takes 3–10 minutes…",
+                )
+
+                start = time.monotonic()
+                final_state, decision = ta.propagate(req.ticker.upper(), req.date)
+                elapsed = time.monotonic() - start
+            finally:
+                if req.api_key and api_key_env:
+                    if saved_key is None:
+                        os.environ.pop(api_key_env, None)
+                    else:
+                        os.environ[api_key_env] = saved_key
 
         report = {}
         if isinstance(final_state, dict):
@@ -219,12 +264,23 @@ async def index() -> FileResponse:
 
 @app.post("/api/analyze", response_model=JobResponse)
 async def analyze(req: AnalyzeRequest, background_tasks: BackgroundTasks) -> JobResponse:
-    if not _provider_key_present(req.llm_provider):
+    if req.llm_provider.lower() == "custom":
+        if not req.backend_url:
+            raise HTTPException(
+                status_code=400,
+                detail="Custom provider requires a base URL.",
+            )
+        if not req.api_key and not os.getenv("OPENAI_API_KEY"):
+            raise HTTPException(
+                status_code=400,
+                detail="Custom provider requires an API key (provided in the form or via OPENAI_API_KEY env var).",
+            )
+    elif not req.api_key and not _provider_key_present(req.llm_provider):
         raise HTTPException(
             status_code=400,
             detail=(
                 f"API key for provider '{req.llm_provider}' not configured. "
-                f"Set the corresponding env var (e.g. OPENAI_API_KEY)."
+                f"Set the corresponding env var (e.g. OPENAI_API_KEY) or provide one in the form."
             ),
         )
 
@@ -336,6 +392,7 @@ async def list_jobs() -> JSONResponse:
 @app.get("/api/config")
 async def get_config() -> dict[str, Any]:
     """Expose which provider keys are configured (does NOT leak the keys)."""
+    alpha_vantage_active = bool(os.getenv("ALPHA_VANTAGE_API_KEY"))
     return {
         "providers_available": {
             "openai": bool(os.getenv("OPENAI_API_KEY")),
@@ -346,7 +403,8 @@ async def get_config() -> dict[str, Any]:
             "openrouter": bool(os.getenv("OPENROUTER_API_KEY")),
         },
         "data_sources": {
-            "alpha_vantage": bool(os.getenv("ALPHA_VANTAGE_API_KEY")),
+            "active": "alpha_vantage" if alpha_vantage_active else "yfinance",
+            "alpha_vantage": alpha_vantage_active,
             "yfinance": True,
         },
     }
