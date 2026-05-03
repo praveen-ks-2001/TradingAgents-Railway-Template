@@ -824,7 +824,7 @@
       </div>
     </div>
     <div class="model-note" id="provider-note">
-      Want to switch providers? Set the matching API key (<code>ANTHROPIC_API_KEY</code>, <code>GOOGLE_API_KEY</code>, <code>DEEPSEEK_API_KEY</code>, <code>OPENROUTER_API_KEY</code>, etc.) in Railway &rarr; Variables, then pick that provider above. Or use <strong>Custom</strong> to plug in any OpenAI-compatible endpoint (Minimax, Groq, Mistral, LM Studio, vLLM, LiteLLM, etc.).
+      Want to switch providers? Set the matching API key (<code>ANTHROPIC_API_KEY</code>, <code>GOOGLE_API_KEY</code>, <code>DEEPSEEK_API_KEY</code>, <code>OPENROUTER_API_KEY</code>, etc.) in Railway &rarr; Variables, then pick that provider above. Or use <strong>Custom</strong> to plug in any OpenAI-compatible endpoint that supports <code>/v1/chat/completions</code> (Groq, Mistral, Together, Minimax, LM Studio, vLLM, LiteLLM, Ollama HTTP, etc.). The base URL must end before <code>/chat/completions</code> — that path is appended automatically.
     </div>
     <div class="field" style="margin-bottom: 6px">
       <label>Analysts to run</label>

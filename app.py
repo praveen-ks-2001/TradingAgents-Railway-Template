@@ -91,7 +91,10 @@ PROVIDER_ENV_KEYS = {
     "deepseek": "DEEPSEEK_API_KEY",
     "openrouter": "OPENROUTER_API_KEY",
     "ollama": None,
-    "custom": "OPENAI_API_KEY",  # custom uses the OpenAI-compatible client
+    # "custom" routes through the openrouter branch internally so we get
+    # standard /v1/chat/completions (not OpenAI's proprietary /v1/responses,
+    # which only api.openai.com implements).
+    "custom": "OPENROUTER_API_KEY",
 }
 
 
@@ -167,8 +170,12 @@ def _run_analysis(job_id: str, req: AnalyzeRequest) -> None:
 
         _update_progress(job_id, "Configuring analysis graph…")
         provider = req.llm_provider.lower()
-        # "custom" maps to the OpenAI-compatible client + a backend_url override
-        internal_provider = "openai" if provider == "custom" else provider
+        # "custom" routes through openrouter internally — that branch in
+        # TradingAgents' OpenAIClient uses /v1/chat/completions instead of
+        # OpenAI's proprietary /v1/responses endpoint. Combined with a
+        # backend_url override, this works against any OpenAI-compatible
+        # provider (Minimax, Groq, Mistral, vLLM, LM Studio, etc.).
+        internal_provider = "openrouter" if provider == "custom" else provider
 
         config = DEFAULT_CONFIG.copy()
         config["llm_provider"] = internal_provider
@@ -270,10 +277,10 @@ async def analyze(req: AnalyzeRequest, background_tasks: BackgroundTasks) -> Job
                 status_code=400,
                 detail="Custom provider requires a base URL.",
             )
-        if not req.api_key and not os.getenv("OPENAI_API_KEY"):
+        if not req.api_key:
             raise HTTPException(
                 status_code=400,
-                detail="Custom provider requires an API key (provided in the form or via OPENAI_API_KEY env var).",
+                detail="Custom provider requires an API key — please enter it in the form.",
             )
     elif not req.api_key and not _provider_key_present(req.llm_provider):
         raise HTTPException(
