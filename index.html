@@ -573,6 +573,112 @@
     margin: 8px 0 0;
   }
 
+  /* ── Analyst checkboxes ──────────────────────────── */
+  .analysts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 14px;
+    margin-bottom: 14px;
+  }
+  .analyst-option {
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 120ms ease;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .analyst-option:hover {
+    border-color: var(--border-strong);
+    background: var(--surface-3);
+  }
+  .analyst-option input[type="checkbox"] {
+    appearance: none;
+    width: 14px; height: 14px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 3px;
+    background: var(--bg);
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    transition: all 120ms ease;
+  }
+  .analyst-option input[type="checkbox"]:checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .analyst-option input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    left: 3.5px; top: 0px;
+    width: 4px; height: 8px;
+    border: solid #001f10;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  .analyst-option:has(input:checked) {
+    color: var(--text);
+    border-color: rgba(52,232,143,0.3);
+    background: var(--accent-soft);
+  }
+
+  /* ── Side info panel (data source) ───────────────── */
+  .data-source-panel {
+    position: fixed;
+    top: 80px;
+    right: 24px;
+    width: 240px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px;
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.65;
+    color: var(--text-faint);
+    z-index: 50;
+  }
+  .data-source-panel .ds-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .data-source-panel .ds-active {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 12px;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .data-source-panel .ds-active::before {
+    content: ""; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent-glow);
+  }
+  .data-source-panel .ds-note {
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .data-source-panel code {
+    color: var(--accent);
+    background: rgba(0,0,0,0.25);
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-size: 10.5px;
+  }
+  @media (max-width: 1180px) {
+    .data-source-panel { display: none; }
+    .data-source-panel.inline-fallback { display: block; position: static; width: auto; margin-bottom: 18px; }
+  }
+
   /* ── Footer ───────────────────────────────────────── */
   footer {
     margin-top: 32px;
@@ -695,6 +801,7 @@
           <option value="deepseek">DeepSeek</option>
           <option value="xai">xAI</option>
           <option value="openrouter">OpenRouter</option>
+          <option value="custom">Custom (OpenAI-compatible)</option>
         </select>
       </div>
       <div class="field">
@@ -706,8 +813,27 @@
       <label for="quick_think_llm">Quick model</label>
       <input id="quick_think_llm" name="quick_think_llm" value="gpt-4o-mini" autocomplete="off" spellcheck="false">
     </div>
-    <div class="model-note">
-      Want to switch providers? Set the matching API key (<code>ANTHROPIC_API_KEY</code>, <code>GOOGLE_API_KEY</code>, <code>DEEPSEEK_API_KEY</code>, <code>OPENROUTER_API_KEY</code>, etc.) in Railway &rarr; Variables, then pick that provider above.
+    <div id="custom-fields" style="display:none">
+      <div class="field">
+        <label for="backend_url">Base URL</label>
+        <input id="backend_url" name="backend_url" placeholder="https://api.minimax.chat/v1 · http://localhost:1234/v1" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="field" style="margin-bottom: 14px">
+        <label for="api_key">API key</label>
+        <input id="api_key" name="api_key" type="password" placeholder="sk-… (sent per request, never stored)" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+    <div class="model-note" id="provider-note">
+      Want to switch providers? Set the matching API key (<code>ANTHROPIC_API_KEY</code>, <code>GOOGLE_API_KEY</code>, <code>DEEPSEEK_API_KEY</code>, <code>OPENROUTER_API_KEY</code>, etc.) in Railway &rarr; Variables, then pick that provider above. Or use <strong>Custom</strong> to plug in any OpenAI-compatible endpoint that supports <code>/v1/chat/completions</code> (Groq, Mistral, Together, Minimax, LM Studio, vLLM, LiteLLM, Ollama HTTP, etc.). The base URL must end before <code>/chat/completions</code> — that path is appended automatically.
+    </div>
+    <div class="field" style="margin-bottom: 6px">
+      <label>Analysts to run</label>
+      <div class="analysts-grid">
+        <label class="analyst-option"><input type="checkbox" name="analyst" value="market" checked> Market <span style="color:var(--text-faint);margin-left:auto;font-size:10px">prices · indicators</span></label>
+        <label class="analyst-option"><input type="checkbox" name="analyst" value="news" checked> News <span style="color:var(--text-faint);margin-left:auto;font-size:10px">headlines</span></label>
+        <label class="analyst-option"><input type="checkbox" name="analyst" value="social" checked> Social <span style="color:var(--text-faint);margin-left:auto;font-size:10px">sentiment</span></label>
+        <label class="analyst-option"><input type="checkbox" name="analyst" value="fundamentals" checked> Fundamentals <span style="color:var(--text-faint);margin-left:auto;font-size:10px">financials</span></label>
+      </div>
     </div>
     <div class="actions">
       <button type="submit" id="submit-btn">Run analysis &rarr;</button>
@@ -756,6 +882,18 @@
 </footer>
 
 </div>
+
+<!-- Data source side panel -->
+<aside class="data-source-panel" id="data-source-panel">
+  <div class="ds-label">Data source</div>
+  <div class="ds-active" id="ds-active">yfinance</div>
+  <div class="ds-note" id="ds-note">
+    Default. Pulls prices, indicators, financials &amp; news from Yahoo Finance — no setup needed.
+  </div>
+  <div class="ds-note">
+    To switch all analysis to <strong>Alpha Vantage</strong>, set <code>ALPHA_VANTAGE_API_KEY</code> in Railway &rarr; Variables. When set, every data fetch (stock, indicators, fundamentals, news) routes through Alpha Vantage instead.
+  </div>
+</aside>
 
 <!-- Report Modal -->
 <div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
@@ -818,8 +956,41 @@ async function loadProviders() {
         p.classList.add('on');
       }
     }
+    const dsActive = document.getElementById('ds-active');
+    const dsNote = document.getElementById('ds-note');
+    if (cfg.data_sources && cfg.data_sources.active === 'alpha_vantage') {
+      dsActive.textContent = 'Alpha Vantage';
+      dsNote.innerHTML = '<code>ALPHA_VANTAGE_API_KEY</code> is set — every data fetch (stock, indicators, fundamentals, news) is going through Alpha Vantage. Unset the variable to fall back to yfinance.';
+    }
   } catch (e) { /* silent */ }
 }
+
+const providerSelect = document.getElementById('llm_provider');
+const customFields = document.getElementById('custom-fields');
+const apiKeyInput = document.getElementById('api_key');
+const backendUrlInput = document.getElementById('backend_url');
+const deepInput = document.getElementById('deep_think_llm');
+const quickInput = document.getElementById('quick_think_llm');
+
+const PROVIDER_DEFAULTS = {
+  openai:     { deep: 'gpt-4o',                quick: 'gpt-4o-mini' },
+  anthropic:  { deep: 'claude-sonnet-4-5',     quick: 'claude-haiku-4-5' },
+  google:     { deep: 'gemini-2.0-flash',      quick: 'gemini-2.0-flash-lite' },
+  deepseek:   { deep: 'deepseek-chat',         quick: 'deepseek-chat' },
+  xai:        { deep: 'grok-2-latest',         quick: 'grok-2-latest' },
+  openrouter: { deep: 'openai/gpt-4o',         quick: 'openai/gpt-4o-mini' },
+  custom:     { deep: '',                      quick: '' },
+};
+
+providerSelect.addEventListener('change', () => {
+  const v = providerSelect.value;
+  customFields.style.display = (v === 'custom') ? 'block' : 'none';
+  const d = PROVIDER_DEFAULTS[v];
+  if (d) {
+    deepInput.value = d.deep;
+    quickInput.value = d.quick;
+  }
+});
 
 function setStatus(state, text) {
   statusEl.className = 'pill ' + state;
@@ -978,8 +1149,28 @@ form.addEventListener('submit', async (e) => {
   submitBtn.disabled = true;
   hint.textContent = 'submitting…';
 
-  const data = Object.fromEntries(new FormData(form));
-  data.max_debate_rounds = parseInt(data.max_debate_rounds, 10);
+  const fd = new FormData(form);
+  const selectedAnalysts = [...form.querySelectorAll('input[name="analyst"]:checked')].map(i => i.value);
+  if (selectedAnalysts.length === 0) {
+    submitBtn.disabled = false;
+    hint.textContent = '';
+    alert('Pick at least one analyst.');
+    return;
+  }
+
+  const data = {
+    ticker: fd.get('ticker'),
+    date: fd.get('date'),
+    llm_provider: fd.get('llm_provider'),
+    deep_think_llm: fd.get('deep_think_llm'),
+    quick_think_llm: fd.get('quick_think_llm'),
+    max_debate_rounds: parseInt(fd.get('max_debate_rounds'), 10),
+    selected_analysts: selectedAnalysts,
+  };
+  if (fd.get('llm_provider') === 'custom') {
+    data.backend_url = fd.get('backend_url') || null;
+    data.api_key = fd.get('api_key') || null;
+  }
 
   try {
     const res = await fetch('/api/analyze', {
